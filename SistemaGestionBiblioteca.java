@@ -1,6 +1,6 @@
 import java.util.*;
 
-// Clase Libro con la parametrización de datos definida
+// Clase Libro (se mantiene igual)
 class Libro {
     String isbn;
     String titulo;
@@ -8,13 +8,12 @@ class Libro {
     int anioPublicacion;
     boolean disponible;
 
-    // Constructor
     public Libro(String isbn, String titulo, String autor, int anioPublicacion) {
         this.isbn = isbn;
         this.titulo = titulo;
         this.autor = autor;
         this.anioPublicacion = anioPublicacion;
-        this.disponible = true; // Por defecto, un libro está disponible al crearse
+        this.disponible = true;
     }
 
     @Override
@@ -24,7 +23,7 @@ class Libro {
     }
 }
 
-// Clase Usuario con la parametrización de datos definida
+// Clase Usuario (se mantiene igual)
 class Usuario {
     String idUsuario;
     String nombre;
@@ -42,62 +41,153 @@ class Usuario {
     }
 }
 
-// Clase principal Biblioteca que orchesta el sistema
-public class SistemaGestionBiblioteca {
-
-    // Estructuras de datos lineales definidas en el diseño
-    private List<Libro> catalogoLibros; // Lista para el catálogo
-    private Queue<Usuario> colaReservas; // Cola para reservas (simplificada a una cola global)
-    private Stack<String> historialAcciones; // Pila para el historial
-
-    public SistemaGestionBiblioteca() {
-        catalogoLibros = new ArrayList<>(); // Se elige ArrayList para el catálogo
-        colaReservas = new LinkedList<>(); // LinkedList implementa la interfaz Queue
-        historialAcciones = new Stack<>(); // Pila para el historial
+// NUEVA CLASE: NodoArbol
+class NodoArbol {
+    String isbn;
+    Libro libro;
+    NodoArbol izquierdo;
+    NodoArbol derecho;
+    
+    public NodoArbol(String isbn, Libro libro) {
+        this.isbn = isbn;
+        this.libro = libro;
+        this.izquierdo = null;
+        this.derecho = null;
     }
+    
+    public String getIsbn() { return isbn; }
+    public Libro getLibro() { return libro; }
+    public NodoArbol getIzquierdo() { return izquierdo; }
+    public NodoArbol getDerecho() { return derecho; }
+    public void setIzquierdo(NodoArbol izquierdo) { this.izquierdo = izquierdo; }
+    public void setDerecho(NodoArbol derecho) { this.derecho = derecho; }
+}
 
-    // Método para agregar un libro al catálogo (Lista)
+// NUEVA CLASE: ArbolBinarioBusqueda
+class ArbolBinarioBusqueda {
+    private NodoArbol raiz;
+    
+    public ArbolBinarioBusqueda() {
+        this.raiz = null;
+    }
+    
+    public void insertar(String isbn, Libro libro) {
+        raiz = insertarRecursivo(raiz, isbn, libro);
+    }
+    
+    private NodoArbol insertarRecursivo(NodoArbol nodo, String isbn, Libro libro) {
+        if (nodo == null) {
+            return new NodoArbol(isbn, libro);
+        }
+        
+        int comparacion = isbn.compareTo(nodo.getIsbn());
+        
+        if (comparacion < 0) {
+            nodo.setIzquierdo(insertarRecursivo(nodo.getIzquierdo(), isbn, libro));
+        } else if (comparacion > 0) {
+            nodo.setDerecho(insertarRecursivo(nodo.getDerecho(), isbn, libro));
+        }
+        
+        return nodo;
+    }
+    
+    public Libro buscar(String isbn) {
+        return buscarRecursivo(raiz, isbn);
+    }
+    
+    private Libro buscarRecursivo(NodoArbol nodo, String isbn) {
+        if (nodo == null) {
+            return null;
+        }
+        
+        int comparacion = isbn.compareTo(nodo.getIsbn());
+        
+        if (comparacion == 0) {
+            return nodo.getLibro();
+        } else if (comparacion < 0) {
+            return buscarRecursivo(nodo.getIzquierdo(), isbn);
+        } else {
+            return buscarRecursivo(nodo.getDerecho(), isbn);
+        }
+    }
+    
+    public void recorrerEnOrden() {
+        recorrerEnOrdenRecursivo(raiz);
+    }
+    
+    private void recorrerEnOrdenRecursivo(NodoArbol nodo) {
+        if (nodo != null) {
+            recorrerEnOrdenRecursivo(nodo.getIzquierdo());
+            System.out.println(nodo.getLibro());
+            recorrerEnOrdenRecursivo(nodo.getDerecho());
+        }
+    }
+    
+    public boolean estaVacio() {
+        return raiz == null;
+    }
+    
+    public int contarLibros() {
+        return contarRecursivo(raiz);
+    }
+    
+    private int contarRecursivo(NodoArbol nodo) {
+        if (nodo == null) {
+            return 0;
+        }
+        return 1 + contarRecursivo(nodo.getIzquierdo()) + contarRecursivo(nodo.getDerecho());
+    }
+}
+
+// CLASE PRINCIPAL MODIFICADA
+public class SistemaGestionBiblioteca {
+    private ArbolBinarioBusqueda catalogoArbol; // ← REEMPLAZADO: Lista por Árbol
+    private Queue<Usuario> colaReservas;
+    private Stack<String> historialAcciones;
+    
+    public SistemaGestionBiblioteca() {
+        catalogoArbol = new ArbolBinarioBusqueda(); // ← INICIALIZACIÓN DEL ÁRBOL
+        colaReservas = new LinkedList<>();
+        historialAcciones = new Stack<>();
+    }
+    
+    // MÉTODOS MODIFICADOS PARA USAR EL ÁRBOL
     public void agregarLibro(String isbn, String titulo, String autor, int anio) {
         Libro nuevoLibro = new Libro(isbn, titulo, autor, anio);
-        catalogoLibros.add(nuevoLibro);
+        catalogoArbol.insertar(isbn, nuevoLibro);
         String accion = "Libro agregado: " + titulo + " (" + isbn + ")";
-        historialAcciones.push(accion); // Registro en el historial (Pila)
+        historialAcciones.push(accion);
         System.out.println(accion);
     }
-
-    // Método para buscar un libro por ISBN (Recorrido de Lista)
+    
     public Libro buscarLibroPorIsbn(String isbn) {
-        for (Libro libro : catalogoLibros) {
-            if (libro.isbn.equals(isbn)) {
-                return libro;
-            }
-        }
-        return null; // No encontrado
+        return catalogoArbol.buscar(isbn);
     }
-
-    // Método para listar todos los libros (Recorrido de Lista)
+    
     public void listarLibros() {
-        if (catalogoLibros.isEmpty()) {
+        if (catalogoArbol.estaVacio()) {
             System.out.println("El catálogo está vacío.");
             return;
         }
-        System.out.println("\n--- CATÁLOGO COMPLETO DE LIBROS ---");
-        for (Libro libro : catalogoLibros) {
-            System.out.println(libro);
-        }
+        System.out.println("\n--- CATÁLOGO COMPLETO DE LIBROS (Ordenado por ISBN) ---");
+        catalogoArbol.recorrerEnOrden();
     }
-
-    // Método para registrar un usuario
+    
+    // MÉTODO NUEVO: Estadísticas del árbol
+    public void mostrarEstadisticas() {
+        System.out.println("\n--- ESTADÍSTICAS DEL CATÁLOGO ---");
+        System.out.println("Total de libros en el sistema: " + catalogoArbol.contarLibros());
+    }
+    
+    // LOS SIGUIENTES MÉTODOS SE MANTIENEN IGUAL (pero ahora son más eficientes)
     public void registrarUsuario(String id, String nombre, String correo) {
-        // En una versión más compleja, se guardaría en una lista de usuarios registrados
         String accion = "Usuario registrado: " + nombre + " (" + id + ")";
         historialAcciones.push(accion);
         System.out.println(accion);
     }
-
-    // Método para prestar un libro
+    
     public void prestarLibro(String isbn, String idUsuario) {
-        Libro libro = buscarLibroPorIsbn(isbn);
+        Libro libro = buscarLibroPorIsbn(isbn); // ← Ahora usa búsqueda en árbol O(log n)
         if (libro == null) {
             System.out.println("Error: El libro con ISBN " + isbn + " no existe en el catálogo.");
             return;
@@ -109,17 +199,14 @@ public class SistemaGestionBiblioteca {
             System.out.println(accion);
         } else {
             System.out.println("El libro no está disponible. Se le notificará cuando esté libre.");
-            // En una cola por libro, se añadiría el usuario a la cola específica
-            // Para este ejemplo, se añade a una cola global simplificada
             Usuario usuarioEnEspera = new Usuario(idUsuario, "Cliente " + idUsuario, "correo@ejemplo.com");
             colaReservas.add(usuarioEnEspera);
             System.out.println("Usuario " + idUsuario + " añadido a la lista de espera.");
         }
     }
-
-    // Método para devolver un libro
+    
     public void devolverLibro(String isbn) {
-        Libro libro = buscarLibroPorIsbn(isbn);
+        Libro libro = buscarLibroPorIsbn(isbn); // ← Ahora usa búsqueda en árbol O(log n)
         if (libro == null) {
             System.out.println("Error: El libro con ISBN " + isbn + " no existe en el catálogo.");
             return;
@@ -130,35 +217,31 @@ public class SistemaGestionBiblioteca {
             historialAcciones.push(accion);
             System.out.println(accion);
 
-            // Notificar al siguiente usuario en la cola de reservas (si existe)
             if (!colaReservas.isEmpty()) {
-                Usuario siguienteUsuario = colaReservas.poll(); // FIFO: Se extrae el primero
+                Usuario siguienteUsuario = colaReservas.poll();
                 System.out.println("¡Atención! Libro disponible para el usuario: " + siguienteUsuario.idUsuario);
             }
         } else {
             System.out.println("El libro ya estaba disponible.");
         }
     }
-
-    // Método para mostrar el historial reciente (Pila)
+    
     public void mostrarHistorialReciente() {
         if (historialAcciones.isEmpty()) {
             System.out.println("El historial está vacío.");
             return;
         }
         System.out.println("\n--- ÚLTIMAS 5 ACCIONES ---");
-        // Se muestran las 5 acciones más recientes (LIFO)
         int count = 0;
         Stack<String> temp = new Stack<>();
-        temp.addAll(historialAcciones); // Copia para no alterar la pila original
+        temp.addAll(historialAcciones);
 
         while (!temp.isEmpty() && count < 5) {
             System.out.println("- " + temp.pop());
             count++;
         }
     }
-
-    // Método para mostrar la cola de reservas
+    
     public void mostrarColaReservas() {
         if (colaReservas.isEmpty()) {
             System.out.println("No hay usuarios en espera.");
@@ -169,26 +252,27 @@ public class SistemaGestionBiblioteca {
             System.out.println(usuario);
         }
     }
-
-    // INTERFAZ DE USUARIO por consola
+    
+    // INTERFAZ DE USUARIO ACTUALIZADA
     public void mostrarMenu() {
         Scanner scanner = new Scanner(System.in);
         int opcion;
 
         do {
-            System.out.println("\n\n=== SISTEMA DE GESTIÓN DE BIBLIOTECA ===");
+            System.out.println("\n\n=== SISTEMA DE GESTIÓN DE BIBLIOTECA (CON ÁRBOL BST) ===");
             System.out.println("1. Agregar nuevo libro");
-            System.out.println("2. Listar todos los libros");
+            System.out.println("2. Listar todos los libros (Ordenado por ISBN)");
             System.out.println("3. Prestar un libro");
             System.out.println("4. Devolver un libro");
             System.out.println("5. Registrar nuevo usuario");
             System.out.println("6. Ver lista de espera (Reservas)");
             System.out.println("7. Ver historial reciente");
+            System.out.println("8. Mostrar estadísticas del catálogo"); // ← NUEVA OPCIÓN
             System.out.println("0. Salir");
             System.out.print("Seleccione una opción: ");
 
             opcion = scanner.nextInt();
-            scanner.nextLine(); // Consumir el salto de línea
+            scanner.nextLine();
 
             switch (opcion) {
                 case 1:
@@ -232,6 +316,9 @@ public class SistemaGestionBiblioteca {
                 case 7:
                     mostrarHistorialReciente();
                     break;
+                case 8:
+                    mostrarEstadisticas();
+                    break;
                 case 0:
                     System.out.println("Saliendo del sistema...");
                     break;
@@ -242,7 +329,6 @@ public class SistemaGestionBiblioteca {
         scanner.close();
     }
 
-    // Método principal para ejecutar el sistema
     public static void main(String[] args) {
         SistemaGestionBiblioteca biblioteca = new SistemaGestionBiblioteca();
         biblioteca.mostrarMenu();
