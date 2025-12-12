@@ -1,6 +1,6 @@
 import java.util.*;
 
-// Clase Libro (se mantiene igual)
+// === CLASE LIBRO ===
 class Libro {
     String isbn;
     String titulo;
@@ -23,7 +23,7 @@ class Libro {
     }
 }
 
-// Clase Usuario (se mantiene igual)
+// === CLASE USUARIO ===
 class Usuario {
     String idUsuario;
     String nombre;
@@ -41,7 +41,7 @@ class Usuario {
     }
 }
 
-// NUEVA CLASE: NodoArbol
+// === CLASE NODO ÁRBOL ===
 class NodoArbol {
     String isbn;
     Libro libro;
@@ -54,16 +54,9 @@ class NodoArbol {
         this.izquierdo = null;
         this.derecho = null;
     }
-    
-    public String getIsbn() { return isbn; }
-    public Libro getLibro() { return libro; }
-    public NodoArbol getIzquierdo() { return izquierdo; }
-    public NodoArbol getDerecho() { return derecho; }
-    public void setIzquierdo(NodoArbol izquierdo) { this.izquierdo = izquierdo; }
-    public void setDerecho(NodoArbol derecho) { this.derecho = derecho; }
 }
 
-// NUEVA CLASE: ArbolBinarioBusqueda
+// === CLASE ÁRBOL BINARIO DE BÚSQUEDA ===
 class ArbolBinarioBusqueda {
     private NodoArbol raiz;
     
@@ -80,12 +73,12 @@ class ArbolBinarioBusqueda {
             return new NodoArbol(isbn, libro);
         }
         
-        int comparacion = isbn.compareTo(nodo.getIsbn());
+        int comparacion = isbn.compareTo(nodo.isbn);
         
         if (comparacion < 0) {
-            nodo.setIzquierdo(insertarRecursivo(nodo.getIzquierdo(), isbn, libro));
+            nodo.izquierdo = insertarRecursivo(nodo.izquierdo, isbn, libro);
         } else if (comparacion > 0) {
-            nodo.setDerecho(insertarRecursivo(nodo.getDerecho(), isbn, libro));
+            nodo.derecho = insertarRecursivo(nodo.derecho, isbn, libro);
         }
         
         return nodo;
@@ -96,19 +89,13 @@ class ArbolBinarioBusqueda {
     }
     
     private Libro buscarRecursivo(NodoArbol nodo, String isbn) {
-        if (nodo == null) {
-            return null;
-        }
+        if (nodo == null) return null;
         
-        int comparacion = isbn.compareTo(nodo.getIsbn());
+        int comparacion = isbn.compareTo(nodo.isbn);
         
-        if (comparacion == 0) {
-            return nodo.getLibro();
-        } else if (comparacion < 0) {
-            return buscarRecursivo(nodo.getIzquierdo(), isbn);
-        } else {
-            return buscarRecursivo(nodo.getDerecho(), isbn);
-        }
+        if (comparacion == 0) return nodo.libro;
+        else if (comparacion < 0) return buscarRecursivo(nodo.izquierdo, isbn);
+        else return buscarRecursivo(nodo.derecho, isbn);
     }
     
     public void recorrerEnOrden() {
@@ -117,41 +104,94 @@ class ArbolBinarioBusqueda {
     
     private void recorrerEnOrdenRecursivo(NodoArbol nodo) {
         if (nodo != null) {
-            recorrerEnOrdenRecursivo(nodo.getIzquierdo());
-            System.out.println(nodo.getLibro());
-            recorrerEnOrdenRecursivo(nodo.getDerecho());
+            recorrerEnOrdenRecursivo(nodo.izquierdo);
+            System.out.println(nodo.libro);
+            recorrerEnOrdenRecursivo(nodo.derecho);
         }
     }
     
     public boolean estaVacio() {
         return raiz == null;
     }
-    
-    public int contarLibros() {
-        return contarRecursivo(raiz);
+}
+
+// === CLASE ARISTA DEL GRAFO ===
+class AristaRecomendacion {
+    String isbnLibroDestino;
+    int peso;
+
+    public AristaRecomendacion(String isbnLibroDestino) {
+        this.isbnLibroDestino = isbnLibroDestino;
+        this.peso = 1;
     }
-    
-    private int contarRecursivo(NodoArbol nodo) {
-        if (nodo == null) {
-            return 0;
-        }
-        return 1 + contarRecursivo(nodo.getIzquierdo()) + contarRecursivo(nodo.getDerecho());
+
+    public void incrementarPeso() {
+        this.peso++;
     }
 }
 
-// CLASE PRINCIPAL MODIFICADA
+// === CLASE GRAFO DE RECOMENDACIONES ===
+class GrafoRecomendaciones {
+    private Map<String, List<AristaRecomendacion>> listaAdyacencia;
+
+    public GrafoRecomendaciones() {
+        this.listaAdyacencia = new HashMap<>();
+    }
+
+    public void registrarPrestamoConjunto(String isbnLibro1, String isbnLibro2) {
+        if (isbnLibro1.equals(isbnLibro2)) return;
+        
+        agregarArista(isbnLibro1, isbnLibro2);
+        agregarArista(isbnLibro2, isbnLibro1);
+    }
+
+    private void agregarArista(String origen, String destino) {
+        listaAdyacencia.putIfAbsent(origen, new ArrayList<>());
+        List<AristaRecomendacion> conexiones = listaAdyacencia.get(origen);
+
+        for (AristaRecomendacion arista : conexiones) {
+            if (arista.isbnLibroDestino.equals(destino)) {
+                arista.incrementarPeso();
+                return;
+            }
+        }
+        conexiones.add(new AristaRecomendacion(destino));
+    }
+
+    public List<String> obtenerRecomendaciones(String isbnLibroBase) {
+        List<String> recomendaciones = new ArrayList<>();
+
+        if (!listaAdyacencia.containsKey(isbnLibroBase)) {
+            return recomendaciones;
+        }
+
+        List<AristaRecomendacion> conexiones = listaAdyacencia.get(isbnLibroBase);
+        conexiones.sort((a1, a2) -> Integer.compare(a2.peso, a1.peso));
+
+        for (AristaRecomendacion arista : conexiones) {
+            recomendaciones.add(arista.isbnLibroDestino);
+        }
+
+        return recomendaciones;
+    }
+}
+
+// === CLASE PRINCIPAL DEL SISTEMA ===
 public class SistemaGestionBiblioteca {
-    private ArbolBinarioBusqueda catalogoArbol; // ← REEMPLAZADO: Lista por Árbol
+    private ArbolBinarioBusqueda catalogoArbol;
     private Queue<Usuario> colaReservas;
     private Stack<String> historialAcciones;
-    
+    private GrafoRecomendaciones grafoRecomendaciones;
+    private Map<String, List<String>> prestamosPorUsuario;
+
     public SistemaGestionBiblioteca() {
-        catalogoArbol = new ArbolBinarioBusqueda(); // ← INICIALIZACIÓN DEL ÁRBOL
+        catalogoArbol = new ArbolBinarioBusqueda();
         colaReservas = new LinkedList<>();
         historialAcciones = new Stack<>();
+        grafoRecomendaciones = new GrafoRecomendaciones();
+        prestamosPorUsuario = new HashMap<>();
     }
     
-    // MÉTODOS MODIFICADOS PARA USAR EL ÁRBOL
     public void agregarLibro(String isbn, String titulo, String autor, int anio) {
         Libro nuevoLibro = new Libro(isbn, titulo, autor, anio);
         catalogoArbol.insertar(isbn, nuevoLibro);
@@ -169,17 +209,10 @@ public class SistemaGestionBiblioteca {
             System.out.println("El catálogo está vacío.");
             return;
         }
-        System.out.println("\n--- CATÁLOGO COMPLETO DE LIBROS (Ordenado por ISBN) ---");
+        System.out.println("\n--- CATÁLOGO COMPLETO (Ordenado por ISBN) ---");
         catalogoArbol.recorrerEnOrden();
     }
     
-    // MÉTODO NUEVO: Estadísticas del árbol
-    public void mostrarEstadisticas() {
-        System.out.println("\n--- ESTADÍSTICAS DEL CATÁLOGO ---");
-        System.out.println("Total de libros en el sistema: " + catalogoArbol.contarLibros());
-    }
-    
-    // LOS SIGUIENTES MÉTODOS SE MANTIENEN IGUAL (pero ahora son más eficientes)
     public void registrarUsuario(String id, String nombre, String correo) {
         String accion = "Usuario registrado: " + nombre + " (" + id + ")";
         historialAcciones.push(accion);
@@ -187,28 +220,42 @@ public class SistemaGestionBiblioteca {
     }
     
     public void prestarLibro(String isbn, String idUsuario) {
-        Libro libro = buscarLibroPorIsbn(isbn); // ← Ahora usa búsqueda en árbol O(log n)
+        Libro libro = catalogoArbol.buscar(isbn);
         if (libro == null) {
-            System.out.println("Error: El libro con ISBN " + isbn + " no existe en el catálogo.");
+            System.out.println("Error: Libro no encontrado.");
             return;
         }
         if (libro.disponible) {
             libro.disponible = false;
-            String accion = "Libro prestado: " + libro.titulo + " a usuario " + idUsuario;
+            
+            // 1. Historial
+            String accion = "Préstamo: " + libro.titulo + " -> " + idUsuario;
             historialAcciones.push(accion);
-            System.out.println(accion);
+            
+            // 2. Actualizar grafo
+            actualizarGrafoRecomendaciones(isbn, idUsuario);
+            
+            System.out.println("Préstamo registrado: " + libro.titulo);
         } else {
-            System.out.println("El libro no está disponible. Se le notificará cuando esté libre.");
-            Usuario usuarioEnEspera = new Usuario(idUsuario, "Cliente " + idUsuario, "correo@ejemplo.com");
-            colaReservas.add(usuarioEnEspera);
-            System.out.println("Usuario " + idUsuario + " añadido a la lista de espera.");
+            System.out.println("Libro no disponible. Usuario en cola de espera.");
+            colaReservas.add(new Usuario(idUsuario, "Cliente", "correo@ejemplo.com"));
         }
     }
     
+    private void actualizarGrafoRecomendaciones(String nuevoLibroIsbn, String idUsuario) {
+        prestamosPorUsuario.putIfAbsent(idUsuario, new ArrayList<>());
+        List<String> librosDelUsuario = prestamosPorUsuario.get(idUsuario);
+
+        for (String isbnLibroAnterior : librosDelUsuario) {
+            grafoRecomendaciones.registrarPrestamoConjunto(isbnLibroAnterior, nuevoLibroIsbn);
+        }
+        librosDelUsuario.add(nuevoLibroIsbn);
+    }
+    
     public void devolverLibro(String isbn) {
-        Libro libro = buscarLibroPorIsbn(isbn); // ← Ahora usa búsqueda en árbol O(log n)
+        Libro libro = catalogoArbol.buscar(isbn);
         if (libro == null) {
-            System.out.println("Error: El libro con ISBN " + isbn + " no existe en el catálogo.");
+            System.out.println("Error: Libro no encontrado.");
             return;
         }
         if (!libro.disponible) {
@@ -216,13 +263,31 @@ public class SistemaGestionBiblioteca {
             String accion = "Libro devuelto: " + libro.titulo;
             historialAcciones.push(accion);
             System.out.println(accion);
-
-            if (!colaReservas.isEmpty()) {
-                Usuario siguienteUsuario = colaReservas.poll();
-                System.out.println("¡Atención! Libro disponible para el usuario: " + siguienteUsuario.idUsuario);
-            }
         } else {
             System.out.println("El libro ya estaba disponible.");
+        }
+    }
+    
+    public void mostrarRecomendaciones(String isbn) {
+        Libro libroBase = catalogoArbol.buscar(isbn);
+        if (libroBase == null) {
+            System.out.println("Libro no encontrado.");
+            return;
+        }
+
+        System.out.println("\n--- LIBROS RECOMENDADOS para: " + libroBase.titulo + " ---");
+        List<String> isbnsRecomendados = grafoRecomendaciones.obtenerRecomendaciones(isbn);
+
+        if (isbnsRecomendados.isEmpty()) {
+            System.out.println("Aún no hay suficientes datos para recomendaciones.");
+            return;
+        }
+
+        for (String isbnRecomendado : isbnsRecomendados) {
+            Libro libroRec = catalogoArbol.buscar(isbnRecomendado);
+            if (libroRec != null) {
+                System.out.println("- " + libroRec.titulo + " (ISBN: " + libroRec.isbn + ")");
+            }
         }
     }
     
@@ -247,19 +312,18 @@ public class SistemaGestionBiblioteca {
             System.out.println("No hay usuarios en espera.");
             return;
         }
-        System.out.println("\n--- USUARIOS EN LISTA DE ESPERA (por orden de llegada) ---");
+        System.out.println("\n--- USUARIOS EN LISTA DE ESPERA ---");
         for (Usuario usuario : colaReservas) {
             System.out.println(usuario);
         }
     }
     
-    // INTERFAZ DE USUARIO ACTUALIZADA
     public void mostrarMenu() {
         Scanner scanner = new Scanner(System.in);
         int opcion;
 
         do {
-            System.out.println("\n\n=== SISTEMA DE GESTIÓN DE BIBLIOTECA (CON ÁRBOL BST) ===");
+            System.out.println("\n\n=== SISTEMA DE GESTIÓN DE BIBLIOTECA ===");
             System.out.println("1. Agregar nuevo libro");
             System.out.println("2. Listar todos los libros (Ordenado por ISBN)");
             System.out.println("3. Prestar un libro");
@@ -267,7 +331,7 @@ public class SistemaGestionBiblioteca {
             System.out.println("5. Registrar nuevo usuario");
             System.out.println("6. Ver lista de espera (Reservas)");
             System.out.println("7. Ver historial reciente");
-            System.out.println("8. Mostrar estadísticas del catálogo"); // ← NUEVA OPCIÓN
+            System.out.println("8. Obtener recomendaciones de libros"); // NUEVA OPCIÓN
             System.out.println("0. Salir");
             System.out.print("Seleccione una opción: ");
 
@@ -276,13 +340,13 @@ public class SistemaGestionBiblioteca {
 
             switch (opcion) {
                 case 1:
-                    System.out.print("Ingrese ISBN: ");
+                    System.out.print("ISBN: ");
                     String isbn = scanner.nextLine();
-                    System.out.print("Ingrese Título: ");
+                    System.out.print("Título: ");
                     String titulo = scanner.nextLine();
-                    System.out.print("Ingrese Autor: ");
+                    System.out.print("Autor: ");
                     String autor = scanner.nextLine();
-                    System.out.print("Ingrese Año: ");
+                    System.out.print("Año: ");
                     int anio = scanner.nextInt();
                     agregarLibro(isbn, titulo, autor, anio);
                     break;
@@ -290,23 +354,23 @@ public class SistemaGestionBiblioteca {
                     listarLibros();
                     break;
                 case 3:
-                    System.out.print("Ingrese ISBN del libro a prestar: ");
+                    System.out.print("ISBN del libro a prestar: ");
                     String isbnPrestamo = scanner.nextLine();
-                    System.out.print("Ingrese su ID de usuario: ");
+                    System.out.print("ID de usuario: ");
                     String idUsuarioPrestamo = scanner.nextLine();
                     prestarLibro(isbnPrestamo, idUsuarioPrestamo);
                     break;
                 case 4:
-                    System.out.print("Ingrese ISBN del libro a devolver: ");
+                    System.out.print("ISBN del libro a devolver: ");
                     String isbnDevolucion = scanner.nextLine();
                     devolverLibro(isbnDevolucion);
                     break;
                 case 5:
-                    System.out.print("Ingrese ID de usuario: ");
+                    System.out.print("ID de usuario: ");
                     String id = scanner.nextLine();
-                    System.out.print("Ingrese Nombre: ");
+                    System.out.print("Nombre: ");
                     String nombre = scanner.nextLine();
-                    System.out.print("Ingrese Correo: ");
+                    System.out.print("Correo: ");
                     String correo = scanner.nextLine();
                     registrarUsuario(id, nombre, correo);
                     break;
@@ -317,7 +381,9 @@ public class SistemaGestionBiblioteca {
                     mostrarHistorialReciente();
                     break;
                 case 8:
-                    mostrarEstadisticas();
+                    System.out.print("ISBN del libro base: ");
+                    String isbnRecomendacion = scanner.nextLine();
+                    mostrarRecomendaciones(isbnRecomendacion);
                     break;
                 case 0:
                     System.out.println("Saliendo del sistema...");
@@ -329,6 +395,7 @@ public class SistemaGestionBiblioteca {
         scanner.close();
     }
 
+    // === MÉTODO MAIN CORRECTO ===
     public static void main(String[] args) {
         SistemaGestionBiblioteca biblioteca = new SistemaGestionBiblioteca();
         biblioteca.mostrarMenu();
